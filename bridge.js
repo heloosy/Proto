@@ -11,7 +11,74 @@ class AdminBridge {
     await this.loadConfig()
     this.setupMessageListener()
     this.startReportPolling()
+    this.setupEventListeners()
     this.updateStatus("Bridge active - listening for reports")
+  }
+
+  setupEventListeners() {
+    // Setup event listeners for buttons
+    document.getElementById("saveConfigBtn").addEventListener("click", () => {
+      this.saveConfig()
+    })
+    
+    document.getElementById("testConnectionBtn").addEventListener("click", () => {
+      this.testConnection()
+    })
+  }
+
+  async saveConfig() {
+    const adminUrl = document.getElementById("adminUrl").value.trim()
+
+    if (adminUrl && !adminUrl.startsWith("http") && !adminUrl.startsWith("file://")) {
+      alert("Please enter a valid URL starting with http://, https://, or file://")
+      return
+    }
+
+    try {
+      await chrome.storage.sync.set({ adminUrl })
+      this.adminUrl = adminUrl
+      this.updateStatus("Configuration saved successfully")
+      console.log("[v0] Admin URL saved:", adminUrl)
+    } catch (error) {
+      console.error("[v0] Error saving config:", error)
+      this.updateStatus("Error saving configuration")
+    }
+  }
+
+  async testConnection() {
+    const adminUrl = document.getElementById("adminUrl").value.trim()
+
+    if (!adminUrl) {
+      alert("Please enter an admin website URL first")
+      return
+    }
+
+    try {
+      this.updateStatus("Testing connection...")
+
+      if (adminUrl.startsWith("file://")) {
+        // For local files, just try to open them
+        chrome.tabs.create({ url: adminUrl })
+        this.updateStatus("Local file opened - connection test successful!")
+        return
+      }
+
+      const response = await fetch(`${adminUrl}/api/test`, {
+        method: "GET",
+        headers: {
+          "X-Source": "incident-analyzer-extension",
+        },
+      })
+
+      if (response.ok) {
+        this.updateStatus("Connection test successful!")
+      } else {
+        this.updateStatus(`Connection test failed: ${response.status}`)
+      }
+    } catch (error) {
+      console.error("[v0] Connection test error:", error)
+      this.updateStatus(`Connection test failed: ${error.message}`)
+    }
   }
 
   async loadConfig() {
@@ -160,66 +227,7 @@ class AdminBridge {
   }
 }
 
-// Global functions for HTML buttons
-async function saveConfig() {
-  const adminUrl = document.getElementById("adminUrl").value.trim()
-
-  if (adminUrl && !adminUrl.startsWith("http") && !adminUrl.startsWith("file://")) {
-    alert("Please enter a valid URL starting with http://, https://, or file://")
-    return
-  }
-
-  try {
-    await chrome.storage.sync.set({ adminUrl })
-    window.adminBridge.adminUrl = adminUrl
-    window.adminBridge.updateStatus("Configuration saved successfully")
-    console.log("[v0] Admin URL saved:", adminUrl)
-  } catch (error) {
-    console.error("[v0] Error saving config:", error)
-    window.adminBridge.updateStatus("Error saving configuration")
-  }
-}
-
-async function testConnection() {
-  const adminUrl = document.getElementById("adminUrl").value.trim()
-
-  if (!adminUrl) {
-    alert("Please enter an admin website URL first")
-    return
-  }
-
-  try {
-    window.adminBridge.updateStatus("Testing connection...")
-
-    if (adminUrl.startsWith("file://")) {
-      // For local files, just try to open them
-      chrome.tabs.create({ url: adminUrl })
-      window.adminBridge.updateStatus("Local file opened - connection test successful!")
-      return
-    }
-
-    const response = await fetch(`${adminUrl}/api/test`, {
-      method: "GET",
-      headers: {
-        "X-Source": "incident-analyzer-extension",
-      },
-    })
-
-    if (response.ok) {
-      window.adminBridge.updateStatus("Connection test successful!")
-    } else {
-      window.adminBridge.updateStatus(`Connection test failed: ${response.status}`)
-    }
-  } catch (error) {
-    console.error("[v0] Connection test error:", error)
-    window.adminBridge.updateStatus(`Connection test failed: ${error.message}`)
-  }
-}
-
 // Initialize bridge when page loads
 document.addEventListener("DOMContentLoaded", () => {
   window.adminBridge = new AdminBridge()
-
-  document.getElementById("saveConfigBtn").addEventListener("click", saveConfig)
-  document.getElementById("testConnectionBtn").addEventListener("click", testConnection)
 })

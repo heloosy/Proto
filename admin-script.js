@@ -36,33 +36,83 @@ class AdminDashboard {
     this.renderUsers()
     this.renderNotifications()
     this.checkCriticalComplaints()
-    this.promptForExtensionId() // Added extension ID prompt for web API access
+    this.loadExtensionData() // Load extension data
   }
 
-  promptForExtensionId() {
-    const storedExtensionId = localStorage.getItem("extensionId")
-    if (storedExtensionId) {
-      this.extensionId = storedExtensionId
-      console.log("[v0] Using stored extension ID:", this.extensionId)
-      this.loadExtensionDataViaWebAPI()
-    } else {
-      const extensionId = prompt(
-        "To connect with the extension, please enter your extension ID:\n\n" +
-          "1. Go to chrome://extensions/\n" +
-          "2. Enable Developer mode\n" +
-          "3. Find 'Incident Analyzer Extension'\n" +
-          "4. Copy the ID (long string of letters)\n\n" +
-          "Extension ID:",
-      )
+  loadExtensionData() {
+    console.log("[v0] Loading extension data...")
+    this.loadExtensionDataFromLocalStorage()
+    this.loadExtensionDataFromChromeAPI()
+  }
 
-      if (extensionId && extensionId.length > 20) {
-        this.extensionId = extensionId.trim()
-        localStorage.setItem("extensionId", this.extensionId)
-        console.log("[v0] Extension ID saved:", this.extensionId)
-        this.loadExtensionDataViaWebAPI()
-      } else {
-        console.log("[v0] No valid extension ID provided - using localStorage fallback")
-      }
+  loadExtensionDataFromChromeAPI() {
+    // Check if we're running in extension context
+    if (window.chrome && window.chrome.runtime && window.chrome.runtime.id) {
+      console.log("[v0] Running in extension context, loading data from Chrome API")
+      
+      window.chrome.runtime.sendMessage({ action: "getExtensionData" }, (response) => {
+        if (window.chrome.runtime.lastError) {
+          console.log("[v0] Chrome API error:", window.chrome.runtime.lastError.message)
+          return
+        }
+        
+        if (response && response.success) {
+          console.log("[v0] Received data from Chrome API:", response.complaints.length, "complaints")
+          
+          // Process complaints from extension
+          response.complaints.forEach((complaint) => {
+            const existingComplaint = this.complaints.find((c) => c.id === complaint.id)
+            if (!existingComplaint) {
+              console.log("[v0] Processing new Chrome API complaint:", complaint.title)
+              this.complaints.unshift(complaint)
+              this.createNotification({
+                type: complaint.severity,
+                title: `New ${complaint.severity} incident detected`,
+                message: `${complaint.type} incident from ${complaint.socialMediaPlatform || "Social Media"}`,
+                details: complaint.location || "Location not specified",
+                time: new Date(complaint.timestamp).toLocaleTimeString(),
+              })
+            }
+          })
+          
+          // Process incidents
+          response.incidents.forEach((incident) => {
+            const existingComplaint = this.complaints.find(
+              (c) => c.source === "extension" && c.time === incident.timestamp
+            )
+            
+            if (!existingComplaint) {
+              const processedComplaint = {
+                id: `inc_${incident.timestamp}_${this.generateId()}`,
+                type: incident.type || "General",
+                severity: incident.severity || "medium",
+                department: this.categorizeDepartment(incident),
+                location: incident.location || "Social Media",
+                time: incident.timestamp,
+                source: "extension",
+                status: "pending",
+                description: incident.text || "",
+                user: "Extension Auto-Detection",
+                impactScore: incident.impactScore || 0,
+                confidence: incident.confidence || 0,
+                url: incident.url || "",
+                postUrl: incident.postUrl || "",
+                keywords: incident.keywords || [],
+                socialMediaPlatform: this.detectPlatformFromUrl(incident.url),
+              }
+              
+              this.complaints.unshift(processedComplaint)
+            }
+          })
+          
+          this.updateStats()
+          this.renderComplaints()
+          this.updateDepartmentStats()
+          this.renderNotifications()
+        }
+      })
+    } else {
+      console.log("[v0] Not running in extension context, using localStorage only")
     }
   }
 
@@ -148,48 +198,30 @@ class AdminDashboard {
 
   setupComplaintListener() {
     try {
-      if (typeof window !== "undefined" && window.chrome && window.chrome.runtime) {
-        window.chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-          if (message.type === "NEW_COMPLAINT" || message.type === "EXTENSION_COMPLAINT") {
-            this.handleNewComplaint(message.complaint)
-            sendResponse({ success: true })
-          }
-          if (message.type === "EXTENSION_COMPLAINTS") {
-            message.complaints.forEach((complaint) => this.handleNewComplaint(complaint))
-            sendResponse({ success: true })
-          }
-        })
-        console.log("[v0] Chrome extension API listener setup successfully")
-      } else {
-        console.log("[v0] Chrome extension API not available - admin page running as website")
-        console.log("[v0] Using localStorage polling and postMessage for communication")
-      }
+      // Listen for messages from extension
+      window.addEventListener("message", (event) => {
+        if (event.origin !== window.location.origin) return
+
+        if (event.data.type === "NEW_COMPLAINT" || event.data.type === "EXTENSION_COMPLAINT") {
+          console.log("[v0] Received complaint via postMessage:", event.data.complaint)
+          this.handleNewComplaint(event.data.complaint)
+        }
+
+        if (event.data.type === "EXTENSION_COMPLAINTS") {
+          console.log("[v0] Received multiple complaints via postMessage:", event.data.complaints.length)
+          event.data.complaints.forEach((complaint) => this.handleNewComplaint(complaint))
+        }
+      })
+      
+      console.log("[v0] PostMessage listener setup successfully")
     } catch (error) {
-      console.log("[v0] Chrome extension API setup failed:", error)
+      console.log("[v0] Message listener setup failed:", error)
     }
 
-    window.addEventListener("message", (event) => {
-      // Only accept messages from the same origin for security
-      if (event.origin !== window.location.origin) return
-
-      if (event.data.type === "EXTENSION_COMPLAINT") {
-        console.log("[v0] Received complaint via postMessage:", event.data.complaint)
-        this.handleNewComplaint(event.data.complaint)
-      }
-
-      if (event.data.type === "EXTENSION_COMPLAINTS") {
-        console.log("[v0] Received multiple complaints via postMessage:", event.data.complaints.length)
-        event.data.complaints.forEach((complaint) => this.handleNewComplaint(complaint))
-      }
-    })
-
+    // Poll for new data every 2 seconds
     setInterval(() => {
       this.checkForNewComplaints()
-      if (this.extensionId) {
-        this.loadExtensionDataViaWebAPI()
-      } else {
-        this.loadExtensionDataFromLocalStorage()
-      }
+      this.loadExtensionDataFromLocalStorage()
     }, 2000)
   }
 
@@ -887,12 +919,7 @@ class AdminDashboard {
   startRealTimeUpdates() {
     setInterval(() => {
       this.loadExtensionDataFromLocalStorage()
-
-      // Only try web API if Chrome runtime is available and extension ID is set
-      if (this.extensionId && window.chrome && window.chrome.runtime) {
-        this.loadExtensionDataViaWebAPI()
-      }
-
+      this.loadExtensionDataFromChromeAPI()
       this.checkForNewComplaints()
       this.checkCriticalComplaints()
     }, 5000)

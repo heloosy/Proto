@@ -1,5 +1,5 @@
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("Incident Analyzer Extension installed")
+  console.log("[Background] Incident Analyzer Extension installed")
 
   // Initialize storage
   chrome.storage.local.set({
@@ -10,8 +10,10 @@ chrome.runtime.onInstalled.addListener(() => {
   })
 })
 
-// Listen for messages from content script
+// Listen for messages from content script and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log("[Background] Received message:", request.action)
+
   if (request.action === "saveIncident") {
     chrome.storage.local.get(["incidents"], (result) => {
       const incidents = result.incidents || []
@@ -22,13 +24,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         incidents.splice(100)
       }
 
-      chrome.storage.local.set({ incidents: incidents })
-      sendResponse({ success: true })
+      chrome.storage.local.set({ incidents: incidents }, () => {
+        console.log("[Background] Incident saved:", request.incident.type)
+        
+        // Update badge
+        chrome.action.setBadgeText({
+          text: incidents.length.toString(),
+        })
+        chrome.action.setBadgeBackgroundColor({ color: "#ff4444" })
+        
+        sendResponse({ success: true })
+      })
     })
     return true
   }
 
-  if (request.type === "SEND_TO_ADMIN") {
+  if (request.action === "NEW_COMPLAINT") {
+    // Handle complaint from content script
     chrome.storage.local.get(["adminComplaints"], (result) => {
       const complaints = result.adminComplaints || []
       complaints.unshift(request.complaint)
@@ -41,24 +53,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       chrome.storage.local.set({ adminComplaints: complaints }, () => {
         console.log("[Background] Complaint stored for admin:", request.complaint.title)
 
-        // Send to all admin tabs
-        chrome.tabs.query({}, (tabs) => {
-          tabs.forEach((tab) => {
-            if (
-              tab.url &&
-              (tab.url.includes("localhost") || tab.url.includes("127.0.0.1") || tab.url.includes("admin"))
-            ) {
-              chrome.tabs
-                .sendMessage(tab.id, {
-                  type: "NEW_COMPLAINT",
-                  complaint: request.complaint,
-                })
-                .catch(() => {
-                  // Ignore errors for tabs that can't receive messages
-                })
-            }
-          })
+        // Update badge
+        chrome.action.setBadgeText({
+          text: complaints.length.toString(),
         })
+        chrome.action.setBadgeBackgroundColor({ color: "#ff4444" })
+
+        sendResponse({ success: true })
+      })
+    })
+    return true
+  }
+
+  if (request.action === "SEND_TO_ADMIN") {
+    chrome.storage.local.get(["adminComplaints"], (result) => {
+      const complaints = result.adminComplaints || []
+      complaints.unshift(request.complaint)
+
+      // Keep only last 500 complaints
+      if (complaints.length > 500) {
+        complaints.splice(500)
+      }
+
+      chrome.storage.local.set({ adminComplaints: complaints }, () => {
+        console.log("[Background] Complaint stored for admin:", request.complaint.title)
+
+        // Update badge
+        chrome.action.setBadgeText({
+          text: complaints.length.toString(),
+        })
+        chrome.action.setBadgeBackgroundColor({ color: "#ff4444" })
 
         sendResponse({ success: true })
       })
@@ -71,29 +95,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const complaints = result.adminComplaints || []
       const incidents = result.incidents || []
 
-      // Calculate statistics
-      const stats = {
-        total: complaints.length,
-        critical: complaints.filter((c) => c.severity === "critical").length,
-        high: complaints.filter((c) => c.severity === "high").length,
-        medium: complaints.filter((c) => c.severity === "medium").length,
-        low: complaints.filter((c) => c.severity === "low").length,
-        byDepartment: {},
-        bySource: {},
-        recent: complaints.slice(0, 10),
-      }
-
-      // Calculate department stats
-      complaints.forEach((complaint) => {
-        stats.byDepartment[complaint.department] = (stats.byDepartment[complaint.department] || 0) + 1
-        stats.bySource[complaint.source] = (stats.bySource[complaint.source] || 0) + 1
-      })
-
       sendResponse({
         success: true,
         complaints: complaints,
         incidents: incidents,
-        stats: stats,
       })
     })
     return true
@@ -118,56 +123,48 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true
   }
 
-  if (request.action === "updateBadge") {
-    const count = request.count || 0
-    chrome.action.setBadgeText({
-      text: count > 0 ? count.toString() : "",
+  if (request.action === "triggerAnalysis") {
+    // Forward to content script
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "triggerAnalysis" }, (response) => {
+          sendResponse(response || { success: true })
+        })
+      } else {
+        sendResponse({ success: false, error: "No active tab" })
+      }
     })
-    chrome.action.setBadgeBackgroundColor({ color: "#ff4444" })
+    return true
+  }
+
+  if (request.action === "openAdminPage") {
+    chrome.tabs.create({ url: chrome.runtime.getURL("admin.html") })
     sendResponse({ success: true })
+    return true
+  }
+
+  if (request.action === "openBridgePage") {
+    chrome.tabs.create({ url: chrome.runtime.getURL("bridge.html") })
+    sendResponse({ success: true })
+    return true
+  }
+
+  if (request.action === "getExtensionData") {
+    chrome.storage.local.get(["adminComplaints", "incidents"], (result) => {
+      sendResponse({
+        success: true,
+        complaints: result.adminComplaints || [],
+        incidents: result.incidents || []
+      })
+    })
     return true
   }
 })
 
-// Update badge with incident count
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (changes.incidents) {
-    const incidentCount = changes.incidents.newValue?.length || 0
-    chrome.action.setBadgeText({
-      text: incidentCount > 0 ? incidentCount.toString() : "",
-    })
-    chrome.action.setBadgeBackgroundColor({ color: "#ff4444" })
-  }
-})
-
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (changes.pendingComplaints && changes.pendingComplaints.newValue) {
-    const complaints = changes.pendingComplaints.newValue
-    if (complaints.length > 0) {
-      // Send to all website tabs
-      chrome.tabs.query({}, (tabs) => {
-        tabs.forEach((tab) => {
-          if (tab.url && (tab.url.includes("localhost") || tab.url.includes("127.0.0.1"))) {
-            chrome.tabs
-              .sendMessage(tab.id, {
-                type: "EXTENSION_COMPLAINTS",
-                complaints: complaints,
-              })
-              .catch(() => {
-                // Ignore errors for tabs that can't receive messages
-              })
-          }
-        })
-      })
-
-      // Clear pending complaints after sending
-      chrome.storage.local.set({ pendingComplaints: [] })
-    }
-  }
-})
-
+// Handle external messages from web pages
 chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => {
-  // Allow admin websites to request complaint data
+  console.log("[Background] External message:", request.action, "from:", sender.origin)
+  
   if (request.action === "getComplaintsForWeb") {
     chrome.storage.local.get(["adminComplaints", "incidents"], (result) => {
       const complaints = result.adminComplaints || []
@@ -203,5 +200,19 @@ chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => 
       }
     })
     return true
+  }
+})
+
+// Update badge with incident count
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (changes.incidents || changes.adminComplaints) {
+    const incidentCount = changes.incidents?.newValue?.length || 0
+    const complaintCount = changes.adminComplaints?.newValue?.length || 0
+    const totalCount = incidentCount + complaintCount
+    
+    chrome.action.setBadgeText({
+      text: totalCount > 0 ? totalCount.toString() : "",
+    })
+    chrome.action.setBadgeBackgroundColor({ color: "#ff4444" })
   }
 })

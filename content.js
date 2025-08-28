@@ -863,40 +863,19 @@ class IncidentAnalyzer {
     try {
       this.safeChromeCall(
         () => {
-          window.chrome.storage.local.get(["incidents"], (result) => {
-            if (window.chrome.runtime.lastError) {
-              console.log("[v0] Error getting incidents:", window.chrome.runtime.lastError)
-              return
-            }
-
-            const incidents = result.incidents || []
-            incidents.unshift(incident)
-
-            // Keep only last 100 incidents
-            if (incidents.length > 100) {
-              incidents.splice(100)
-            }
-
-            window.chrome.storage.local.set({ incidents: incidents }, () => {
+          window.chrome.runtime.sendMessage(
+            {
+              action: "saveIncident",
+              incident: incident,
+            },
+            (response) => {
               if (window.chrome.runtime.lastError) {
-                console.log("[v0] Error saving incidents:", window.chrome.runtime.lastError)
-                return
+                console.log("[v0] Error saving incident:", window.chrome.runtime.lastError)
+              } else {
+                console.log("[v0] Incident saved successfully")
               }
-
-              if (this.isExtensionContextValid()) {
-                window.chrome.runtime.sendMessage(
-                  {
-                    action: "updateBadge",
-                    count: incidents.length,
-                  },
-                  () => {
-                    if (window.chrome.runtime.lastError) {
-                      console.log("[v0] Error updating badge:", window.chrome.runtime.lastError)
-                    }
-                  },
-                )
-              }
-            })
+            }
+          )
           })
         },
         () => {
@@ -1156,21 +1135,31 @@ class IncidentAnalyzer {
   }
 
   async storeComplaintForAdmin(complaintData) {
-    return new Promise((resolve) => {
-      window.chrome.storage.local.get(["adminComplaints"], (result) => {
-        const complaints = result.adminComplaints || []
-        complaints.unshift(complaintData)
-
-        if (complaints.length > 500) {
-          complaints.splice(500)
-        }
-
-        window.chrome.storage.local.set({ adminComplaints: complaints }, () => {
-          console.log("[v0] Complaint stored for admin access")
-          resolve()
+    try {
+      if (window.chrome && window.chrome.runtime) {
+        const response = await new Promise((resolve) => {
+          window.chrome.runtime.sendMessage(
+            {
+              action: "SEND_TO_ADMIN",
+              complaint: complaintData,
+            },
+            resolve
+          )
         })
-      })
-    })
+        console.log("[v0] Complaint sent to admin:", response)
+      }
+      
+      // Also store in localStorage for web access
+      const existingComplaints = JSON.parse(localStorage.getItem("extensionComplaints") || "[]")
+      existingComplaints.unshift(complaintData)
+      if (existingComplaints.length > 100) {
+        existingComplaints.splice(100)
+      }
+      localStorage.setItem("extensionComplaints", JSON.stringify(existingComplaints))
+      console.log("[v0] Complaint stored in localStorage for web access")
+    } catch (error) {
+      console.log("[v0] Error sending complaint to admin:", error)
+    }
   }
 }
 

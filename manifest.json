@@ -10,7 +10,8 @@
     "https://facebook.com/*",
     "https://instagram.com/*",
     "https://linkedin.com/*",
-    "https://firestore.googleapis.com/*"
+    "http://localhost:*/*",
+    "https://*/*"
   ],
   "content_scripts": [
     {
@@ -22,7 +23,8 @@
         "https://linkedin.com/*"
       ],
       "js": ["content.js"],
-      "css": ["content.css"]
+      "css": ["content.css"],
+      "run_at": "document_end"
     }
   ],
   "action": {
@@ -35,7 +37,7 @@
   "options_page": "admin.html",
   "web_accessible_resources": [
     {
-      "resources": ["bridge.html"],
+      "resources": ["bridge.html", "admin.html", "index.html"],
       "matches": ["<all_urls>"]
     }
   ],
@@ -43,5 +45,8 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
+  },
+  "externally_connectable": {
+    "matches": ["http://localhost:*/*", "https://*/*"]
   }
 }

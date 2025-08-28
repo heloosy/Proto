@@ -1,12 +1,13 @@
 // Simple in-memory storage (replace with real database in production)
-const users = JSON.parse(localStorage.getItem("users") || "[]");
-const complaints = JSON.parse(localStorage.getItem("complaints") || "[]");
+let users = JSON.parse(localStorage.getItem("users") || "[]");
+let complaints = JSON.parse(localStorage.getItem("complaints") || "[]");
 let currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
 
 // Initialize app
 document.addEventListener("DOMContentLoaded", () => {
   initializeApp();
   setupEventListeners();
+  setupExtensionListener();
 });
 
 function initializeApp() {
@@ -71,6 +72,103 @@ function updateNavigation() {
 }
 
 // Authentication
+function setupExtensionListener() {
+  // Listen for complaints from extension
+  window.addEventListener("message", (event) => {
+    if (event.origin !== window.location.origin) return
+
+    if (event.data.type === "EXTENSION_COMPLAINT") {
+      console.log("[Website] Received complaint from extension:", event.data.complaint)
+      handleExtensionComplaint(event.data.complaint)
+    }
+  })
+
+  // Poll for extension complaints in localStorage
+  setInterval(() => {
+    try {
+      const extensionComplaints = JSON.parse(localStorage.getItem("extensionComplaints") || "[]")
+      const lastCheck = localStorage.getItem("websiteLastExtensionCheck") || "0"
+      
+      const newComplaints = extensionComplaints.filter(
+        (c) => new Date(c.timestamp).getTime() > parseInt(lastCheck)
+      )
+
+      if (newComplaints.length > 0) {
+        console.log("[Website] Found new extension complaints:", newComplaints.length)
+        newComplaints.forEach(handleExtensionComplaint)
+        localStorage.setItem("websiteLastExtensionCheck", Date.now().toString())
+      }
+    } catch (error) {
+      console.log("[Website] Error checking extension complaints:", error)
+    }
+  }, 3000)
+
+  // Also check if we can connect to extension directly
+  if (window.chrome && window.chrome.runtime) {
+    try {
+      // Try to get extension ID from the page URL if we're on extension page
+      const extensionId = window.location.href.includes('chrome-extension://') 
+        ? window.location.href.split('chrome-extension://')[1].split('/')[0]
+        : null
+        
+      if (extensionId) {
+        console.log("[Website] Detected extension ID:", extensionId)
+        // Try to connect to extension
+        window.chrome.runtime.sendMessage(extensionId, { action: "getExtensionData" }, (response) => {
+          if (!window.chrome.runtime.lastError && response && response.success) {
+            console.log("[Website] Successfully connected to extension")
+            response.complaints.forEach(handleExtensionComplaint)
+          }
+        })
+      }
+    } catch (error) {
+      console.log("[Website] Could not connect to extension:", error)
+    }
+  }
+}
+
+function handleExtensionComplaint(extensionComplaint) {
+  // Convert extension complaint to website format
+  const complaint = {
+    id: extensionComplaint.id || Date.now(),
+    userId: 0, // System user for extension complaints
+    type: extensionComplaint.type || "other",
+    title: extensionComplaint.title || `Auto-detected ${extensionComplaint.type}`,
+    description: extensionComplaint.description || extensionComplaint.text || "Auto-generated from social media analysis",
+    location: extensionComplaint.location || "Social Media",
+    priority: mapSeverityToPriority(extensionComplaint.severity),
+    department: extensionComplaint.department || getDepartment(extensionComplaint.type, extensionComplaint.description || ""),
+    status: "pending",
+    source: "extension",
+    createdAt: extensionComplaint.timestamp || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    extensionData: extensionComplaint
+  }
+
+  // Add to complaints array
+  complaints.unshift(complaint)
+  localStorage.setItem("complaints", JSON.stringify(complaints))
+
+  // Show notification if user is logged in
+  if (currentUser) {
+    showSuccess(`New incident detected: ${complaint.title}`)
+    updateDashboardStats()
+    loadUserComplaints()
+  }
+
+  console.log("[Website] Extension complaint processed:", complaint.title)
+}
+
+function mapSeverityToPriority(severity) {
+  const mapping = {
+    critical: "urgent",
+    high: "high", 
+    medium: "medium",
+    low: "low"
+  }
+  return mapping[severity] || "medium"
+}
+
 function handleLogin(e) {
   e.preventDefault();
   showLoading();
@@ -132,6 +230,21 @@ function handleRegister(e) {
     showDashboard();
     showSuccess("Registration successful!");
     hideLoading();
+    
+    // Update users data for admin
+    const userData = {
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      phone: newUser.phone,
+      registrationDate: newUser.createdAt,
+      complaints: 0,
+      status: "active"
+    }
+    
+    const adminUsers = JSON.parse(localStorage.getItem("users") || "[]")
+    adminUsers.push(userData)
+    localStorage.setItem("users", JSON.stringify(adminUsers))
   }, 1000);
 }
 
@@ -173,6 +286,13 @@ function handleComplaintSubmission(e) {
 
     complaints.push(newComplaint);
     localStorage.setItem("complaints", JSON.stringify(complaints));
+
+    // Update user complaint count
+    const userIndex = users.findIndex(u => u.id === currentUser.id)
+    if (userIndex !== -1) {
+      users[userIndex].complaints = (users[userIndex].complaints || 0) + 1
+      localStorage.setItem("users", JSON.stringify(users))
+    }
 
     document.getElementById("complaintForm").reset();
     document.getElementById("departmentPreview")?.classList.add("hidden");

@@ -21,11 +21,11 @@
 
         <!-- Navigation -->
         <nav class="admin-nav">
-            <button class="nav-btn active" data-section="overview">Overview</button>
-            <button class="nav-btn" data-section="complaints">Complaints</button>
-            <button class="nav-btn" data-section="users">Users</button>
-            <button class="nav-btn" data-section="departments">Departments</button>
-            <button class="nav-btn" data-section="analytics">Analytics</button>
+            <button class="nav-btn active" onclick="window.adminDashboard.showSection('overview')">Overview</button>
+            <button class="nav-btn" onclick="window.adminDashboard.showSection('complaints')">Complaints</button>
+            <button class="nav-btn" onclick="window.adminDashboard.showSection('users')">Users</button>
+            <button class="nav-btn" onclick="window.adminDashboard.showSection('departments')">Departments</button>
+            <button class="nav-btn" onclick="window.adminDashboard.showSection('analytics')">Analytics</button>
             </nav>
 
         <!-- Main Content -->
