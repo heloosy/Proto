@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complaint Management System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <h1 class="nav-logo">ComplaintHub</h1>
+      <div class="nav-buttons" id="navButtons">
+        <button class="btn btn-outline" onclick="showLogin()">Login</button>
+        <button class="btn btn-primary" onclick="showRegister()">Register</button>
+      </div>
+      <div class="user-menu hidden" id="userMenu">
+        <span id="userName"></span>
+        <button class="btn btn-outline" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <!-- Landing Page -->
+    <section id="landingPage" class="section">
+      <div class="hero">
+        <h1>Submit Your Complaints Easily</h1>
+        <p>A secure platform to register complaints and track their resolution</p>
+        <div class="hero-buttons">
+          <button class="btn btn-primary btn-large" onclick="showRegister()">Get Started</button>
+          <button class="btn btn-outline btn-large" onclick="window.open('admin.html', '_blank')">Admin Dashboard</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Login Form -->
+    <section id="loginSection" class="section hidden">
+      <div class="form-container">
+        <h2>Login to Your Account</h2>
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" required>
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Login</button>
+        </form>
+        <p class="form-footer">
+          Don't have an account? <a href="#" onclick="showRegister()">Register here</a>
+        </p>
+      </div>
+    </section>
+
+    <!-- Register Form -->
+    <section id="registerSection" class="section hidden">
+      <div class="form-container">
+        <h2>Create Your Account</h2>
+        <form id="registerForm">
+          <div class="form-group">
+            <label for="registerName">Full Name</label>
+            <input type="text" id="registerName" required>
+          </div>
+          <div class="form-group">
+            <label for="registerEmail">Email</label>
+            <input type="email" id="registerEmail" required>
+          </div>
+          <div class="form-group">
+            <label for="registerPhone">Phone Number</label>
+            <input type="tel" id="registerPhone" required>
+          </div>
+          <div class="form-group">
+            <label for="registerPassword">Password</label>
+            <input type="password" id="registerPassword" required>
+          </div>
+          <div class="form-group">
+            <label for="confirmPassword">Confirm Password</label>
+            <input type="password" id="confirmPassword" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Register</button>
+        </form>
+        <p class="form-footer">
+          Already have an account? <a href="#" onclick="showLogin()">Login here</a>
+        </p>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashboardSection" class="section hidden">
+      <div class="dashboard-container">
+        <div class="dashboard-header">
+          <h2>Your Dashboard</h2>
+          <button class="btn btn-primary" onclick="showComplaintForm()">Submit New Complaint</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3 id="totalComplaints">0</h3>
+            <p>Total Complaints</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="pendingComplaints">0</h3>
+            <p>Pending</p>
+          </div>
+          <div class="stat-card">
+            <h3 id="resolvedComplaints">0</h3>
+            <p>Resolved</p>
+          </div>
+        </div>
+
+        <div class="complaints-list">
+          <h3>Your Complaints</h3>
+          <div id="complaintsContainer">
+            <p class="no-complaints">No complaints submitted yet.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Complaint Form -->
+    <section id="complaintSection" class="section hidden">
+      <div class="form-container">
+        <h2>Submit a Complaint</h2>
+        <form id="complaintForm">
+          <div class="form-group">
+            <label for="complaintType">Complaint Type</label>
+            <select id="complaintType" required onchange="updateDepartmentPreview()">
+              <option value="">Select complaint type</option>
+              <option value="road">Road & Infrastructure</option>
+              <option value="water">Water Supply</option>
+              <option value="electricity">Electricity</option>
+              <option value="garbage">Garbage Collection</option>
+              <option value="noise">Noise Pollution</option>
+              <option value="public-safety">Public Safety</option>
+              <option value="fire">Fire Emergency</option>
+              <option value="accident">Traffic Accident</option>
+              <option value="pollution">Environmental Pollution</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div class="department-preview hidden" id="departmentPreview">
+            <div class="department-info">
+              <span class="department-label">Will be routed to:</span>
+              <span class="department-name" id="departmentName">General Services</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="complaintTitle">Title</label>
+            <input type="text" id="complaintTitle" placeholder="Brief description of the issue" required onkeyup="updateDepartmentPreview()">
+          </div>
+          <div class="form-group">
+            <label for="complaintDescription">Detailed Description</label>
+            <textarea id="complaintDescription" rows="5" placeholder="Provide detailed information about your complaint" required onkeyup="updateDepartmentPreview()"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="complaintLocation">Location</label>
+            <input type="text" id="complaintLocation" placeholder="Address or location of the issue" required>
+          </div>
+          <div class="form-group">
+            <label for="complaintPriority">Priority Level</label>
+            <select id="complaintPriority" required>
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline" onclick="showDashboard()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Submit Complaint</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loading-spinner"></div>
+    <p>Processing...</p>
+  </div>
+
+  <script src="script.js"></script>
+<script src="extension.js"></script>
+
+</body>
+</html>

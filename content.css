@@ -1,0 +1,161 @@
+.incident-analyzer-overlay {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  z-index: 10000;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-width: 250px;
+}
+
+.analyzing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid #4caf50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.analysis-complete {
+  background: rgba(76, 175, 80, 0.9) !important;
+}
+
+.incident-highlight {
+  background: rgba(255, 193, 7, 0.2) !important;
+  border-left: 3px solid #ffc107 !important;
+  padding-left: 10px !important;
+  margin: 5px 0 !important;
+  border-radius: 4px !important;
+}
+
+.incident-highlight.severity-critical {
+  background: rgba(255, 0, 0, 0.2) !important;
+  border-left: 3px solid #ff0000 !important;
+}
+
+.incident-highlight.severity-high {
+  background: rgba(255, 102, 0, 0.2) !important;
+  border-left: 3px solid #ff6600 !important;
+}
+
+.incident-highlight.severity-medium {
+  background: rgba(255, 170, 0, 0.2) !important;
+  border-left: 3px solid #ffaa00 !important;
+}
+
+.incident-highlight.severity-low {
+  background: rgba(204, 204, 204, 0.1) !important;
+  border-left: 3px solid #cccccc !important;
+}
+
+.incident-badge {
+  display: inline-block;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: bold;
+  margin-left: 8px;
+  text-transform: uppercase;
+}
+
+.severity-critical {
+  background: #ff0000;
+  animation: pulse 1.5s infinite;
+}
+
+.severity-high {
+  background: #ff6600;
+}
+
+.severity-medium {
+  background: #ffaa00;
+}
+
+.severity-low {
+  background: #cccccc;
+  color: #666;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Added auto-complaint notification styling */
+.auto-complaint-notification {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  background: rgba(76, 175, 80, 0.95);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  z-index: 10001;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  min-width: 280px;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.notification-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notification-content strong {
+  font-size: 15px;
+}
+
+.notification-content small {
+  opacity: 0.9;
+  font-size: 12px;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

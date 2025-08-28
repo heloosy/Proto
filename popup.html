@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 350px;
+      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+    
+    .stat-number {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    
+    .recent-incidents {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 15px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .recent-incidents h3 {
+      margin: 0 0 15px 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .incident-item {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    
+    .incident-type {
+      font-weight: bold;
+      color: #ffd700;
+    }
+    
+    .incident-location {
+      opacity: 0.8;
+      margin-top: 3px;
+    }
+    
+    .incident-time {
+      opacity: 0.6;
+      font-size: 10px;
+      margin-top: 3px;
+    }
+    
+    .controls {
+      margin-top: 20px;
+      text-align: center;
+    }
+    
+    .toggle-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+    
+    .toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    
+    .toggle-btn.active {
+      background: #4CAF50;
+    }
+    
+    .severity-filter {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .severity-filter h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .filter-buttons {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    
+    .filter-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 10px;
+      transition: all 0.3s ease;
+      flex: 1;
+    }
+    
+    .filter-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    
+    .filter-btn.active {
+      background: #4CAF50;
+    }
+    
+    .no-incidents {
+      text-align: center;
+      opacity: 0.7;
+      font-size: 12px;
+      padding: 20px;
+    }
+    
+    .severity-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 9px;
+      font-weight: bold;
+      margin-left: 5px;
+    }
+    
+    .severity-critical {
+      background: #ff4444;
+      color: white;
+    }
+    
+    .severity-high {
+      background: #ff8800;
+      color: white;
+    }
+    
+    .severity-medium {
+      background: #ffaa00;
+      color: black;
+    }
+    
+    .severity-low {
+      background: #cccccc;
+      color: black;
+    }
+    
+    .manual-analysis-btn {
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+    
+    .manual-analysis-btn:hover {
+      background: #0056b3;
+    }
+
+    /* Added admin page button styles */
+    .admin-btn {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+    
+    .admin-btn:hover {
+      background: #218838;
+    }
+
+    /* Added bridge page button styles */
+    .bridge-btn {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      background: #6f42c1;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+    
+    .bridge-btn:hover {
+      background: #5a32a3;
+    }
+
+    /* Added admin configuration section styles */
+    .admin-config {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      backdrop-filter: blur(10px);
+    }
+
+    .admin-config h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .admin-config input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      box-sizing: border-box;
+    }
+
+    .admin-config button {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      background: #17a2b8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .admin-config button:hover {
+      background: #138496;
+    }
+
+    .admin-status {
+      font-size: 11px;
+      margin-top: 5px;
+      text-align: center;
+    }
+
+    .config-btn {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .config-btn:hover {
+      background: #5a6268;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🚨 Incident Analyzer</h1>
+  </div>
+  
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-number" id="totalIncidents"></div>
+      <div class="stat-label">Total Found</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="todayIncidents"></div>
+      <div class="stat-label">Today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="criticalIncidents"></div>
+      <div class="stat-label">Critical</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="highIncidents"></div>
+      <div class="stat-label">High Priority</div>
+    </div>
+  </div>
+  
+  <div class="severity-filter">
+    <h3>Severity Filter</h3>
+    <div class="filter-buttons">
+      <button class="filter-btn active" data-severity="all">All</button>
+      <button class="filter-btn" data-severity="critical">Critical</button>
+      <button class="filter-btn" data-severity="high">High</button>
+      <button class="filter-btn" data-severity="medium">Medium</button>
+    </div>
+  </div>
+
+  <!-- Added admin website configuration section -->
+  <button class="config-btn" id="configureAdmin">⚙️ Configure Admin Website</button>
+  
+  <div id="adminConfigSection" class="admin-config" style="display: none;">
+    <h3>Admin Website URL</h3>
+    <input type="url" id="adminUrl" placeholder="https://your-admin-website.com" />
+    <button id="saveAdminUrl">Save Admin URL</button>
+    <div id="adminUrlStatus" class="admin-status"></div>
+  </div>
+  
+  <div class="recent-incidents">
+    <h3>Recent Incidents</h3>
+    <div id="incidentsList">
+      <div class="no-incidents">No incidents detected yet. Browse social media to start analyzing posts.</div>
+    </div>
+  </div>
+  
+  <div class="controls">
+    <button class="manual-analysis-btn" id="manualAnalysis">Analyze Current Page</button>
+    <!-- Added admin dashboard access button -->
+    <button class="admin-btn" id="adminPage">📊 Open Admin Dashboard</button>
+    <!-- Added bridge page access button -->
+    <button class="bridge-btn" id="bridgePage">🌉 Open Admin Bridge</button>
+    <button class="toggle-btn active" id="toggleAnalysis">Analysis: ON</button>
+  </div>
+
+  <button id="toggleReport">Send Report</button>
+
+  <!-- Hidden section -->
+  <div id="reportSection" style="display: none; margin-top: 10px;">
+    <label for="officeSelect">Select Office:</label>
+    <select id="officeSelect">
+      <option value="">--Choose an Office--</option>
+      <option value="Bangalore">Bangalore</option>
+      <option value="Delhi">Delhi</option>
+      <option value="Mumbai">Mumbai</option>
+    </select>
+
+    <div id="emailTemplate" style="display: none; margin-top: 10px;">
+      <h3>Email Preview:</h3>
+      <textarea id="emailBody" readonly style="width: 100%; height: 120px;">
+Dear [Office Name] Team,
+
+Please find attached the incident report generated from the extension.
+
+Best Regards,
+[Your Extension]
+      </textarea>
+
+      <div style="margin-top: 10px;">
+        <label for="screenshotUpload">Attach Screenshot:</label>
+        <input type="file" id="screenshotUpload" accept="image/*">
+      </div>
+
+      <button id="sendEmail">Send Email</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Incident Management System</title>
+    <link rel="stylesheet" href="admin-styles.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Header -->
+        <header class="admin-header">
+            <div class="header-content">
+                <h1>Admin Dashboard</h1>
+                <div class="admin-info">
+                    <span class="admin-name">Administrator</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="admin-nav">
+            <button class="nav-btn active" data-section="overview">Overview</button>
+            <button class="nav-btn" data-section="complaints">Complaints</button>
+            <button class="nav-btn" data-section="users">Users</button>
+            <button class="nav-btn" data-section="departments">Departments</button>
+            <button class="nav-btn" data-section="analytics">Analytics</button>
+            </nav>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Overview Section -->
+            <section id="overview" class="admin-section active">
+                <div class="stats-grid">
+                    <div class="stat-card critical">
+                        <h3>Critical Incidents</h3>
+                        <div class="stat-number" id="criticalCount">0</div>
+                        <div class="stat-change">+0 today</div>
+                    </div>
+                    <div class="stat-card high">
+                        <h3>High Priority</h3>
+                        <div class="stat-number" id="highCount">0</div>
+                        <div class="stat-change">+0 today</div>
+                    </div>
+                    <div class="stat-card medium">
+                        <h3>Medium Priority</h3>
+                        <div class="stat-number" id="mediumCount">0</div>
+                        <div class="stat-change">+0 today</div>
+                    </div>
+                    <div class="stat-card users">
+                        <h3>Total Users</h3>
+                        <div class="stat-number" id="userCount">0</div>
+                        <div class="stat-change">+0 new</div>
+                    </div>
+                    <div id="reportsList"></div>
+                </div>
+
+                <!-- Real-time Notifications -->
+                <div class="notifications-panel">
+                    <h3>Real-time Notifications</h3>
+                    <div id="notificationsList" class="notifications-list">
+                        <div class="no-notifications">No new notifications</div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="recent-activity">
+                    <h3>Recent Activity</h3>
+                    <div id="recentActivity" class="activity-list">
+                        <div class="no-activity">No recent activity</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Complaints Section -->
+            <section id="complaints" class="admin-section">
+                <div class="section-header">
+                    <h2>Complaint Management</h2>
+                    <div class="filters">
+                        <select id="severityFilter" onchange="filterComplaints()">
+                            <option value="all">All Severities</option>
+                            <option value="critical">Critical</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                        <select id="departmentFilter" onchange="filterComplaints()">
+                            <option value="all">All Departments</option>
+                            <option value="fire">Fire Department</option>
+                            <option value="police">Police</option>
+                            <option value="medical">Medical Services</option>
+                            <option value="public-works">Public Works</option>
+                            <option value="environmental">Environmental</option>
+                        </select>
+                        <select id="sourceFilter" onchange="filterComplaints()">
+                            <option value="all">All Sources</option>
+                            <option value="website">Website</option>
+                            <option value="extension">Extension</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="complaintsTable" class="complaints-table">
+                    <div class="table-header">
+                        <div>ID</div>
+                        <div>Type</div>
+                        <div>Severity</div>
+                        <div>Department</div>
+                        <div>Location</div>
+                        <div>Time</div>
+                        <div>Source</div>
+                        <div>Status</div>
+                        <div>Actions</div>
+                    </div>
+                    <div id="complaintsBody" class="table-body">
+                        <div class="no-complaints">No complaints found</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Users Section -->
+            <section id="users" class="admin-section">
+                <div class="section-header">
+                    <h2>User Management</h2>
+                    <div class="user-stats">
+                        <span>Total: <strong id="totalUsers">0</strong></span>
+                        <span>Active: <strong id="activeUsers">0</strong></span>
+                        <span>New Today: <strong id="newUsers">0</strong></span>
+                    </div>
+                </div>
+                <div id="usersTable" class="users-table">
+                    <div class="table-header">
+                        <div>ID</div>
+                        <div>Name</div>
+                        <div>Email</div>
+                        <div>Phone</div>
+                        <div>Registration Date</div>
+                        <div>Complaints</div>
+                        <div>Status</div>
+                        <div>Actions</div>
+                    </div>
+                    <div id="usersBody" class="table-body">
+                        <div class="no-users">No users found</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Departments Section -->
+            <section id="departments" class="admin-section">
+                <div class="section-header">
+                    <h2>Department Overview</h2>
+                </div>
+                <div class="departments-grid">
+                    <div class="department-card fire">
+                        <h3>Fire Department</h3>
+                        <div class="dept-stats">
+                            <div>Active: <span id="fireActive">0</span></div>
+                            <div>Pending: <span id="firePending">0</span></div>
+                            <div>Resolved: <span id="fireResolved">0</span></div>
+                        </div>
+                    </div>
+                    <div class="department-card police">
+                        <h3>Police</h3>
+                        <div class="dept-stats">
+                            <div>Active: <span id="policeActive">0</span></div>
+                            <div>Pending: <span id="policePending">0</span></div>
+                            <div>Resolved: <span id="policeResolved">0</span></div>
+                        </div>
+                    </div>
+                    <div class="department-card medical">
+                        <h3>Medical Services</h3>
+                        <div class="dept-stats">
+                            <div>Active: <span id="medicalActive">0</span></div>
+                            <div>Pending: <span id="medicalPending">0</span></div>
+                            <div>Resolved: <span id="medicalResolved">0</span></div>
+                        </div>
+                    </div>
+                    <div class="department-card public-works">
+                        <h3>Public Works</h3>
+                        <div class="dept-stats">
+                            <div>Active: <span id="publicWorksActive">0</span></div>
+                            <div>Pending: <span id="publicWorksPending">0</span></div>
+                            <div>Resolved: <span id="publicWorksResolved">0</span></div>
+                        </div>
+                    </div>
+                    <div class="department-card environmental">
+                        <h3>Environmental</h3>
+                        <div class="dept-stats">
+                            <div>Active: <span id="environmentalActive">0</span></div>
+                            <div>Pending: <span id="environmentalPending">0</span></div>
+                            <div>Resolved: <span id="environmentalResolved">0</span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section id="analytics" class="admin-section">
+                <div class="section-header">
+                    <h2>Analytics & Reports</h2>
+                </div>
+                        <h3>Complaints by Severity</h3>
+                <div class="analytics-grid">
+                    <div class="chart-container">
+                        <canvas id="severityChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Complaints by Department</h3>
+                        <canvas id="departmentChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Daily Complaint Trends</h3>
+                        <canvas id="trendsChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Response Times</h3>
+                        <canvas id="responseChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+        <script src="admin-script.js"></script>
+</body>
+</html>
